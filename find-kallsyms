@@ -15,7 +15,7 @@ def main():
     with open(args.path, 'rb') as fp:
         rodata = fp.read()
     for address, name in find_kallsyms_in_rodata(rodata):
-        print('{:016X} {}'.format(address, name))
+        print('{:016X} {} {}'.format(address, name[0], name[1:]))
 
 
 if __name__ == '__main__':

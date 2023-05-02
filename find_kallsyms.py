@@ -18,7 +18,22 @@ def try_parse_token_index(rodata, endianness, offset):
 
 
 def find_token_indices(rodata, endianness):
+    # @Info(alekum): We assume that these symbols are located in kallsyms_token_table.
+    # We assume that kallsyms_token_table is stored above kallsyms_token_index array.
+    # This assumption might be wrong though. Anyway, it might helps to reduce search space.
+    # Before: DEBUG:root:Found 0x02232F60 =>, found total: 1, skipped total: 3721443
+    # After : DEBUG:root:Found 0x02232F60 =>, found total: 1, skipped total: 1
+    symbols_heuristics = (b'r__ksymtab', b'r__kstrtab')
     token_index_offset = 0
+
+    for sym in symbols_heuristics:
+        candidate = rodata.rfind(sym, token_index_offset)
+        if candidate > token_index_offset:
+            token_index_offset = candidate + len(sym) + 1 # jump behind the symbol to continue
+        logging.debug("[*] For sym=%s found candidate 0x%08X, adjust token_index_offset base pattern search to 0x%08X", sym, candidate, token_index_offset)
+
+    skipped = 0
+    found = 0
     while True:
         # kallsyms_token_index is an array of monotonically increasing 256
         # shorts, the first of which is 0. It is located right after
@@ -31,7 +46,11 @@ def find_token_indices(rodata, endianness):
         token_index = try_parse_token_index(
             rodata, endianness, token_index_offset)
         if token_index is not None:
+            found += 1
+            logging.debug("Found 0x%08X =>, found total: %d, skipped total: %d", token_index_offset, found, skipped)
             yield token_index_offset, token_index
+        else:
+            skipped += 1
 
 
 def try_parse_token_table(rodata, token_index, start_offset, end_offset):
@@ -303,7 +322,7 @@ def find_addresses(rodata, endianness, num_syms_offset, num_syms):
             yield addresses_offset, addresses
         # Try KALLSYMS_BASE_RELATIVE: kallsyms_offsets followed by
         # kallsyms_relative_base. This was introduced in 4.6 by commit
-        # 2213e9a66bb8.
+         # 2213e9a66bb8.
         for addresses_offset, addresses in \
                 find_addresses_kallsyms_base_relative(
                     rodata, endianness, num_syms_offset, num_syms, word):

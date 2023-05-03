@@ -75,18 +75,26 @@ def try_parse_token_table(rodata, token_index, start_offset, end_offset):
 
 
 def find_token_tables(rodata, token_index, token_index_offset):
+    # @TODO(alekum): We can try change the algorithm to go backwards to identify
+    #  last entity in the table. Once we identified last one we can either use
+    #  current method finding start, end offset or use linear backwards approach
+    #  to get all 256 table entities...
     last_token_offset = token_index_offset
     while True:
         # kallsyms_token_table is a sequence of 256 null-terminated strings.
         # Find the last token by looking for a trailing \0.
+        logging.debug("Last token offset to scan up to 0x%08X", last_token_offset)
         token_table_end_offset = last_token_offset
-        last_token_offset = rodata.rfind(
-            b'\x00', 0, last_token_offset - 1) + 1
+        # @Cleanup(alekum): we can scan from last occurance of the our symbol heuristic
+        # as we already did with kallsyms_token_index array. Otherwuse we scan until the
+        # highest address found from the beginning that means process is very slow...
+        last_token_offset = rodata.rfind(b'\x00', 0, last_token_offset - 1) + 1
         if last_token_offset == 0:
             break
         # The last kallsyms_token_index element corresponds to the last token.
         # Use that information to locate kallsyms_token_table.
         token_table_offset = last_token_offset - token_index[-1]
+        logging.debug("Last Token Offset 0x%08X ==> Token Table Offset 0x%08X", last_token_offset,token_table_offset)
         if token_table_offset < 0:
             continue
         token_table = try_parse_token_table(

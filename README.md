@@ -25,6 +25,21 @@ IDA script for parsing kallsyms.
 * The resulting `vmlinux.kallsyms` file can be imported into IDA using
   `ida-kallsyms-import.py` script.
 
+```
+Rojaster(Alekum)
+Slight improvements in search heuristics, tested on latest android kernels:
+
+Before in average:
+real    0m5.613s
+user    0m5.014s
+sys     0m0.098s
+
+After in average:
+real    0m2.886s
+user    0m2.138s
+sys     0m0.092s
+```
+
 # build-vmlinux
 
 Script for obtaining function signatures and struct layouts. Works by building
